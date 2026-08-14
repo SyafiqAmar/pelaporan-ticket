@@ -1,0 +1,48 @@
+*.sqlite*
+# Laravel
+/vendor/
+/node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Laravel storage
+/storage/*.key
+/storage/app/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+
+# SQLite database
+/database/*.sqlite
+/database/*.sqlite-journal
+/database/*.sqlite-wal
+/database/*.sqlite-shm
+
+# IDE / Editor
+/.idea/
+/.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build files
+/public/build/
+/public/hot
+/public/storage
+
+# Logs
+*.log
+
+# PHPUnit
+.phpunit.result.cache
+
+# Laravel Pint
+.php-cs-fixer.cache
