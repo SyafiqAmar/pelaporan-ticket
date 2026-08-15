@@ -1,58 +1,710 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Pelaporan Tiket
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi pelaporan dan pengelolaan tiket untuk mencatat masalah, menetapkan tiket kepada user tertentu, serta memantau status penyelesaian tiket.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP
+- Laravel
+- Filament
+- Filament Shield
+- SQLite
+- Tailwind CSS
+- Vite
+- Composer
+- Node.js / NPM
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Fitur
 
-## Learning Laravel
+- Membuat ticket
+- Melihat daftar ticket
+- Melihat detail ticket
+- Mengedit ticket
+- Menghapus ticket
+- Menentukan priority ticket
+- Menentukan status ticket
+- Menentukan user yang menangani ticket
+- Upload attachment
+- Preview attachment
+- Role dan permission menggunakan Filament Shield
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Requirements
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+Pastikan environment sudah memiliki:
 
-## Agentic Development
+- PHP
+- Composer
+- Node.js
+- NPM
+- Git
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Cek instalasi:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php -v
+composer -V
+node -v
+npm -v
+git --version
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+# Installation
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 1. Clone Repository
 
-## Code of Conduct
+```bash
+git clone <REPOSITORY_URL>
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Masuk ke folder project:
 
-## Security Vulnerabilities
+```bash
+cd pelaporan-tiket
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 2. Install PHP Dependencies
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+composer install
+```
+
+---
+
+## 3. Install Node Dependencies
+
+```bash
+npm install
+```
+
+---
+
+# Environment Configuration
+
+## 4. Buat File `.env`
+
+Windows:
+
+```bash
+copy .env.example .env
+```
+
+Linux / macOS:
+
+```bash
+cp .env.example .env
+```
+
+---
+
+## 5. Generate Application Key
+
+```bash
+php artisan key:generate
+```
+
+---
+
+# Database
+
+Project ini menggunakan SQLite.
+
+## 6. Buat Database SQLite
+
+Jika file database belum tersedia, buat:
+
+```text
+database/database.sqlite
+```
+
+### Windows PowerShell
+
+```powershell
+New-Item database/database.sqlite -ItemType File
+```
+
+Atau buat file `database.sqlite` secara manual di dalam folder `database`.
+
+---
+
+## 7. Konfigurasi Database
+
+Pastikan `.env` menggunakan SQLite:
+
+```env
+DB_CONNECTION=sqlite
+```
+
+Pastikan database mengarah ke:
+
+```text
+database/database.sqlite
+```
+
+---
+
+## 8. Jalankan Migration
+
+```bash
+php artisan migrate
+```
+
+Untuk melihat status migration:
+
+```bash
+php artisan migrate:status
+```
+
+---
+
+# Storage
+
+Attachment ticket menggunakan Laravel public storage.
+
+## 9. Buat Storage Link
+
+```bash
+php artisan storage:link
+```
+
+File attachment disimpan di:
+
+```text
+storage/app/public/tickets
+```
+
+dan dapat diakses melalui:
+
+```text
+public/storage
+```
+
+---
+
+# Filament
+
+## 10. Membuat User Admin
+
+Untuk membuat user yang dapat login ke Filament:
+
+```bash
+php artisan make:filament-user
+```
+
+Isi:
+
+```text
+Name
+Email
+Password
+```
+
+User tersebut dapat digunakan untuk login ke panel Filament.
+
+---
+
+# Filament Shield
+
+Project ini menggunakan Filament Shield untuk mengelola role dan permission.
+
+Jika Shield belum dikonfigurasi pada environment baru:
+
+```bash
+php artisan shield:setup
+```
+
+Model `User` harus menggunakan trait:
+
+```php
+use Spatie\Permission\Traits\HasRoles;
+```
+
+Contoh:
+
+```php
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable
+{
+    use HasRoles;
+
+    // ...
+}
+```
+
+Permission dan role kemudian dapat dikelola melalui Filament Shield.
+
+---
+
+# Frontend
+
+Untuk menjalankan Vite dalam mode development:
+
+```bash
+npm run dev
+```
+
+Biarkan proses tersebut tetap berjalan selama development.
+
+---
+
+# Menjalankan Aplikasi
+
+Gunakan dua terminal.
+
+### Terminal 1
+
+```bash
+php artisan serve
+```
+
+Aplikasi akan tersedia di:
+
+```text
+http://127.0.0.1:8000
+```
+
+### Terminal 2
+
+```bash
+npm run dev
+```
+
+Panel administrasi Filament tersedia di:
+
+```text
+http://127.0.0.1:8000/admin
+```
+
+Login menggunakan user yang dibuat dengan:
+
+```bash
+php artisan make:filament-user
+```
+
+---
+
+# Ticket
+
+Ticket memiliki beberapa informasi utama:
+
+- Subject
+- Description
+- Category
+- Priority
+- Status
+- Creator
+- Assignee
+- Attachment
+
+---
+
+# Ticket Status
+
+Status ticket menggunakan native PHP enum.
+
+Status yang tersedia:
+
+```text
+open
+in_progress
+resolved
+closed
+```
+
+Alur status:
+
+```text
+OPEN
+  ↓
+IN_PROGRESS
+  ↓
+RESOLVED
+  ↓
+CLOSED
+```
+
+Enum berada di:
+
+```text
+app/Enums/TicketStatus.php
+```
+
+---
+
+# Ticket Priority
+
+Priority ticket menggunakan native PHP enum.
+
+Enum berada di:
+
+```text
+app/Enums/TicketPriority.php
+```
+
+---
+
+# Ticket Relationship
+
+Ticket memiliki dua relasi ke User.
+
+## Creator
+
+Relasi:
+
+```php
+creator()
+```
+
+menggunakan foreign key:
+
+```text
+tickets.user_id
+```
+
+Contoh:
+
+```php
+public function creator(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
+```
+
+## Assignee
+
+Relasi:
+
+```php
+assignee()
+```
+
+menggunakan foreign key:
+
+```text
+tickets.assigned_to
+```
+
+Contoh:
+
+```php
+public function assignee(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+```
+
+---
+
+# User Relationship
+
+User memiliki dua relasi ke Ticket.
+
+## Ticket yang dibuat user
+
+```php
+createdTickets()
+```
+
+menggunakan:
+
+```text
+tickets.user_id
+```
+
+## Ticket yang ditugaskan kepada user
+
+```php
+assignedTickets()
+```
+
+menggunakan:
+
+```text
+tickets.assigned_to
+```
+
+---
+
+# Attachment
+
+Attachment ticket menggunakan satu kolom:
+
+```text
+attachment_path
+```
+
+Project tidak menggunakan tabel `ticket_attachments`.
+
+Upload menggunakan Filament:
+
+```php
+FileUpload::make('attachment_path')
+    ->disk('public')
+    ->directory('tickets')
+    ->nullable()
+```
+
+File disimpan pada:
+
+```text
+storage/app/public/tickets
+```
+
+---
+
+# Attachment Preview
+
+Attachment dapat ditampilkan pada halaman detail ticket.
+
+Format yang dapat dipreview langsung oleh browser:
+
+- PNG
+- JPG
+- JPEG
+- WebP
+- GIF
+- PDF
+
+Preview attachment menggunakan halaman View Ticket.
+
+File yang tidak dapat ditampilkan langsung oleh browser akan menyediakan opsi untuk membuka file.
+
+---
+
+# Mass Assignment
+
+Model `Ticket` menggunakan `Fillable` untuk menentukan field yang boleh diisi melalui form.
+
+Field yang dapat diisi melalui form:
+
+```text
+subject
+description
+category
+priority
+attachment_path
+```
+
+Field tertentu tidak berasal langsung dari input user.
+
+`user_id` creator diisi secara otomatis berdasarkan user yang sedang login:
+
+```php
+$data['user_id'] = auth()->user()->id;
+```
+
+Status awal ticket ditentukan oleh aplikasi:
+
+```php
+$data['status'] = TicketStatus::OPEN;
+```
+
+---
+
+# Struktur Project
+
+Struktur utama aplikasi:
+
+```text
+app/
+├── Enums/
+│   ├── TicketPriority.php
+│   └── TicketStatus.php
+│
+├── Filament/
+│   └── Resources/
+│       └── Tickets/
+│           ├── Pages/
+│           │   ├── CreateTicket.php
+│           │   ├── EditTicket.php
+│           │   ├── ListTickets.php
+│           │   └── ViewTicket.php
+│           │
+│           ├── Schemas/
+│           │   ├── TicketForm.php
+│           │   └── TicketInfolist.php
+│           │
+│           ├── Tables/
+│           │   └── TicketsTable.php
+│           │
+│           └── TicketResource.php
+│
+└── Models/
+    ├── Ticket.php
+    └── User.php
+```
+
+Attachment preview:
+
+```text
+resources/
+└── views/
+    └── filament/
+        └── tickets/
+            └── previewdetail.blade.php
+```
+
+---
+
+# Git Ignore
+
+File dan folder yang bersifat environment/local tidak disimpan di repository.
+
+Contoh:
+
+```gitignore
+.env
+/vendor/
+/node_modules/
+*.sqlite*
+```
+
+Database SQLite lokal tidak disimpan ke repository.
+
+Setelah clone repository, developer harus membuat database SQLite sendiri dan menjalankan:
+
+```bash
+php artisan migrate
+```
+
+---
+
+# Troubleshooting
+
+## Migration gagal karena database belum ada
+
+Pastikan file berikut tersedia:
+
+```text
+database/database.sqlite
+```
+
+Kemudian:
+
+```bash
+php artisan migrate
+```
+
+---
+
+## Attachment tidak dapat dibuka
+
+Pastikan storage link sudah dibuat:
+
+```bash
+php artisan storage:link
+```
+
+Pastikan file berada di:
+
+```text
+storage/app/public/tickets
+```
+
+---
+
+## Vite tidak ditemukan
+
+Jika muncul error seperti:
+
+```text
+'vite' is not recognized
+```
+
+jalankan:
+
+```bash
+npm install
+```
+
+Kemudian:
+
+```bash
+npm run dev
+```
+
+---
+
+## Permission Shield bermasalah
+
+Pastikan `User` menggunakan:
+
+```php
+use Spatie\Permission\Traits\HasRoles;
+```
+
+dan:
+
+```php
+use HasRoles;
+```
+
+Kemudian jalankan:
+
+```bash
+php artisan shield:setup
+```
+
+---
+
+# Useful Artisan Commands
+
+## Cek Migration
+
+```bash
+php artisan migrate:status
+```
+
+## Jalankan Migration
+
+```bash
+php artisan migrate
+```
+
+## Reset Database
+
+> Gunakan hanya pada environment development karena akan menghapus seluruh data database.
+
+```bash
+php artisan migrate:fresh
+```
+
+## Membuat Filament User
+
+```bash
+php artisan make:filament-user
+```
+
+## Membuat Storage Link
+
+```bash
+php artisan storage:link
+```
+
+## Clear Cache
+
+```bash
+php artisan optimize:clear
+```
+
+## Menjalankan Laravel
+
+```bash
+php artisan serve
+```
+
+## Menjalankan Vite
+
+```bash
+npm run dev
+```
+
+---

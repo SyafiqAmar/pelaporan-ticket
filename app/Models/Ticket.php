@@ -4,25 +4,30 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 
+#[Fillable([
+    'subject',
+    'description',
+    'category',
+    'priority',
+    'attachment_path',
+    'user_id',
+    'status',
+    'assigned_to',
+])]
+
 class Ticket extends Model
 {
-
-    #[Fillable([
-        'subject',
-        'description',
-        'category',
-        'priority',
-        'attachment_path',
-    ])]
-
-    protected $casts = [
-        'priority' => \App\Enums\TicketPriority::class,
-        'status' => \App\Enums\TicketStatus::class,
-    ];
+    protected function casts(): array
+    {
+        return [
+            'priority' => TicketPriority::class,
+            'status' => TicketStatus::class,
+        ];
+    }
 
     public function creator(): BelongsTo
     {
@@ -32,9 +37,5 @@ class Ticket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
-    }
-    public function attachments(): HasMany
-    {
-        return $this->hasMany(TicketAttachment::class, 'ticket_id');
     }
 }

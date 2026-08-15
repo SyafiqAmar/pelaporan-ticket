@@ -19,8 +19,8 @@ return new class extends Migration
             $table->text('description');
             $table->string('category');
             $table->string('priority');
-            $table->string('status');
-            $table->string('attachment')->nullable();
+            $table->string('status')->default('open');
+            $table->string('attachment_path')->nullable();
             $table->timestamps();
         });
     }
