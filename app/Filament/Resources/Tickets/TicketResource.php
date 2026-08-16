@@ -15,6 +15,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use App\Filament\Resources\Tickets\Schemas\TicketInfolist;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class TicketResource extends Resource
 {
@@ -30,7 +32,7 @@ class TicketResource extends Resource
     }
 
     public static function infolist(Schema $schema): Schema
-{
+    {
     return TicketInfolist::configure($schema);
     }
 
@@ -54,5 +56,16 @@ class TicketResource extends Resource
             'view' => ViewTicket::route('/{record}'),
             'edit' => EditTicket::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (Auth::user()?->hasRole('admin')) {
+            return $query;
+        }
+
+        return $query->where('user_id', Auth::id());
     }
 }

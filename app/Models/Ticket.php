@@ -14,7 +14,6 @@ use App\Enums\TicketStatus;
     'category',
     'priority',
     'attachment_path',
-    'user_id',
     'status',
     'assigned_to',
 ])]

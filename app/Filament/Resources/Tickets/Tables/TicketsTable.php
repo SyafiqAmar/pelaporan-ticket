@@ -28,7 +28,7 @@ class TicketsTable
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('assigne.name')
+                TextColumn::make('assignee.name')
                     ->label('Assigned To')
                     ->placeholder('Unassigned')
                     ->searchable()

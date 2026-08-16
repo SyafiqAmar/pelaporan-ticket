@@ -9,7 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
-use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class TicketForm
 {
@@ -37,11 +37,12 @@ class TicketForm
                     ->searchable()
                     ->preload()
                     ->nullable()
-                    ->hiddenOn('create'),
+                    ->visible(fn () => Auth::user()?->hasRole('admin')),
 
                 Select::make('status')
                     ->options(TicketStatus::class)
                     ->required()
+                    ->visible(fn () => Auth::user()?->hasRole('admin'))
                     ->hiddenOn('create'),
                     
                 FileUpload::make('attachment_path')
