@@ -46,6 +46,8 @@ Pengguna yang tidak memiliki role sama sekali ditolak masuk panel. Perilaku ini 
 
 Policy menjawab pertanyaan "boleh atau tidak", sedangkan scoping query menjawab "terlihat atau tidak". Keduanya wajib ada. Policy saja tidak menyembunyikan baris dari tabel daftar, dan scoping saja tidak menolak akses melalui URL langsung.
 
+Otorisasi aksi diimplementasikan menggunakan permission granular dari Filament Shield, dengan format `Aksi:Model` (contoh: `View:Ticket`, `Update:Ticket`). Role `admin` dikonfigurasi sebagai super admin (`config/filament-shield.php`, `super_admin.define_via_gate = true`) sehingga lolos semua pemeriksaan permission tanpa perlu di-assign satu per satu. Role `user` diberi permission terbatas melalui `RoleSeeder`. Permission dan policy dapat digenerate ulang lewat `php artisan shield:generate --resource=TicketResource --panel=admin`; setelah generate ulang, cek kepemilikan tiket pada method `view`, `update`, dan `delete` di `TicketPolicy` harus ditambahkan kembali secara manual, karena Shield tidak mengenal konsep kepemilikan data.
+
 ---
 
 ## Prasyarat
@@ -124,15 +126,24 @@ DB_CONNECTION=sqlite
 php artisan migrate
 ```
 
-### 7. Seed role dan akun demo
+### 7. Pasang dan generate Filament Shield
+
+```bash
+php artisan shield:install admin
+php artisan shield:generate --resource=TicketResource --panel=admin
+```
+
+Perintah pertama mendaftarkan plugin Shield pada panel `admin`. Perintah kedua membuat baris permission untuk resource Ticket di database. Langkah ini wajib dijalankan sebelum seeding role, karena `RoleSeeder` meng-assign permission yang dihasilkan di sini.
+
+### 8. Seed role dan akun demo
 
 ```bash
 php artisan db:seed --class=RoleSeeder
 ```
 
-Langkah ini membuat role `admin` dan `user` beserta dua akun untuk pengujian. Tanpa langkah ini tidak ada akun yang dapat masuk ke panel.
+Langkah ini membuat role `admin` dan `user`, meng-assign permission ke role `user`, serta membuat dua akun untuk pengujian. Tanpa langkah ini tidak ada akun yang dapat masuk ke panel.
 
-### 8. Buat storage link
+### 9. Buat storage link
 
 ```bash
 php artisan storage:link
@@ -140,7 +151,7 @@ php artisan storage:link
 
 Attachment disimpan di `storage/app/public/tickets` dan diakses melalui `public/storage`.
 
-### 9. Jalankan aplikasi
+### 10. Jalankan aplikasi
 
 Gunakan dua terminal terpisah:
 
@@ -216,13 +227,13 @@ Tahap ini merupakan bagian terpenting dari pengujian.
 
 3. Akses tiket tersebut secara langsung melalui `http://127.0.0.1:8000/admin/tickets/2`.
 
-   Hasil yang diharapkan: respons 403 Forbidden.
+   Hasil yang diharapkan: respons 404 Not Found.
 
 4. Akses halaman edit melalui `http://127.0.0.1:8000/admin/tickets/2/edit`.
 
-   Hasil yang diharapkan: respons 403 Forbidden.
+   Hasil yang diharapkan: respons 404 Not Found.
 
-Langkah 2 memverifikasi scoping query, sedangkan langkah 3 dan 4 memverifikasi policy. Kegagalan pada salah satunya menandakan adanya kebocoran akses.
+Langkah 2 memverifikasi scoping query pada `TicketResource::getEloquentQuery()`. Langkah 3 dan 4 menghasilkan 404, bukan 403, karena Filament mencari record melalui query yang sudah di-scope tersebut sebelum sempat memeriksa `TicketPolicy`; tiket milik pengguna lain sudah tidak ditemukan lebih dulu. Kegagalan pada salah satu langkah tetap menandakan adanya kebocoran akses.
 
 ### D. Pengujian gerbang panel
 
@@ -379,20 +390,29 @@ app/
 │           └── TicketResource.php        getEloquentQuery: scoping data
 │
 ├── Models/
-│   ├── Ticket.php
+│   ├── Ticket.php                        HasFactory, casts, relasi
 │   └── User.php                          canAccessPanel dan trait HasRoles
 │
 └── Policies/
-    └── TicketPolicy.php                  otorisasi view, create, update, delete
+    ├── TicketPolicy.php                  permission Shield + cek kepemilikan tiket
+    └── RolePolicy.php                    hasil generate shield:install
 
 database/
+├── factories/
+│   └── TicketFactory.php
 ├── migrations/
 └── seeders/
     ├── DatabaseSeeder.php
-    └── RoleSeeder.php                    role admin dan user beserta akun demo
+    └── RoleSeeder.php                    role admin dan user, assign permission, akun demo
 
 resources/views/filament/tickets/
 └── previewdetail.blade.php
+
+tests/
+├── Feature/
+│   └── TicketAuthorizationTest.php       panel access, scoping, dan policy
+└── Unit/
+    └── TicketMassAssignmentTest.php      proteksi mass assignment user_id
 ```
 
 ---
@@ -449,6 +469,23 @@ npm run dev
 
 ---
 
+## Testing Otomatis
+
+Aturan hak akses pada bagian Alur Pengujian Fitur (A-E) dituangkan sebagai automated test, sehingga dapat diverifikasi ulang dalam hitungan detik tanpa mengulang langkah manual di browser.
+
+```bash
+php artisan test
+```
+
+| File | Yang diverifikasi |
+| --- | --- |
+| `tests/Feature/TicketAuthorizationTest.php` | Gerbang panel, scoping daftar tiket per role, akses view/edit tiket lintas pengguna |
+| `tests/Unit/TicketMassAssignmentTest.php` | `user_id` tidak dapat diisi melalui mass assignment |
+
+`TicketAuthorizationTest` menggunakan `RefreshDatabase` sehingga berjalan pada database SQLite in-memory terpisah dan tidak menyentuh `database/database.sqlite`.
+
+---
+
 ## Perintah Artisan yang Sering Digunakan
 
 ```bash
@@ -469,11 +506,11 @@ Perintah `migrate:fresh` menghapus seluruh tabel beserta datanya. Setelah menjal
 
 ## Catatan Pengembangan
 
-Filament Shield telah terpasang dan konfigurasinya sudah dipublikasikan pada `config/filament-shield.php`, tetapi plugin-nya belum didaftarkan pada `AdminPanelProvider`. Role dan permission saat ini dikelola melalui `RoleSeeder` dan `TicketPolicy`, bukan melalui antarmuka. Shield akan diaktifkan apabila dibutuhkan halaman pengaturan permission bagi admin.
+Filament Shield aktif penuh: plugin terdaftar pada `AdminPanelProvider`, dan role/permission dapat dikelola melalui antarmuka pada `/admin/shield/roles` selain lewat `RoleSeeder`. Perlu diperhatikan: apabila permission suatu role diubah melalui antarmuka tersebut, tabel Model Hak Akses pada dokumen ini menjadi deskripsi kondisi awal hasil seeder, bukan lagi jaminan kondisi saat ini.
+
+Attachment tetap menggunakan satu kolom `attachment_path` (satu berkas per tiket) sesuai keputusan pemberi task, bukan tabel terpisah.
 
 Rencana pengembangan berikutnya:
 
-- Dukungan attachment multi-berkas melalui tabel terpisah `ticket_attachments`. Implementasi saat ini terbatas pada satu kolom dan satu berkas per tiket.
 - Filter dan pencarian tiket berdasarkan status dan priority.
 - Notifikasi ketika tiket ditugaskan atau statusnya berubah.
-- Automated test untuk memverifikasi aturan hak akses.

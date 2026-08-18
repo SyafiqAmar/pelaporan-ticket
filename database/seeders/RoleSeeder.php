@@ -13,14 +13,20 @@ class RoleSeeder extends Seeder
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $user = Role::firstOrCreate(['name' => 'user']);
 
-        user::firstOrCreate(
+        $user->givePermissionTo([
+            'View:Ticket',
+            'ViewAny:Ticket',
+            'Create:Ticket',
+        ]);
+
+        User::firstOrCreate(
             ['email' => 'admin@mail.com'],
             ['name' => 'admin IT', 'password' => 'password'],
         )->assignRole($admin);
 
-        user::firstOrCreate(
-        ['email' => 'staff@mail.com'],
-        ['name' => 'staff', 'password' => 'password'],
+        User::firstOrCreate(
+            ['email' => 'staff@mail.com'],
+            ['name' => 'staff', 'password' => 'password'],
         )->assignRole($user);
     }
 }

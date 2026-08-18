@@ -1,44 +1,74 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\Ticket;
-use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class TicketPolicy
 {
-    public function viewAny(User $user): bool
+    use HandlesAuthorization;
+
+    public function viewAny(AuthUser $authUser): bool
     {
-        return true;
+        return $authUser->can('ViewAny:Ticket');
     }
 
-    public function view(User $user, Ticket $ticket): bool
+    public function view(AuthUser $authUser, Ticket $ticket): bool
     {
-        return $user->hasRole('admin') || $ticket->user_id === $user->id;
+        return $authUser->can('View:Ticket') && $ticket->user_id === $authUser->id;
     }
 
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return true;
+        return $authUser->can('Create:Ticket');
     }
 
-    public function update(User $user, Ticket $ticket): bool
+    public function update(AuthUser $authUser, Ticket $ticket): bool
     {
-        return $user->hasRole(['admin']);
+        return $authUser->can('Update:Ticket') && $ticket->user_id === $authUser->id;
     }
 
-    public function delete(User $user, Ticket $ticket): bool
+    public function delete(AuthUser $authUser, Ticket $ticket): bool
     {
-        return $user->hasRole(['admin']);
+        return $authUser->can('Delete:Ticket') && $ticket->user_id === $authUser->id;
     }
 
-    public function restore(User $user, Ticket $ticket): bool
+    public function deleteAny(AuthUser $authUser): bool
     {
-        return false;
+        return $authUser->can('DeleteAny:Ticket');
     }
 
-    public function forceDelete(User $user, Ticket $ticket): bool
+    public function restore(AuthUser $authUser, Ticket $ticket): bool
     {
-        return false;
+        return $authUser->can('Restore:Ticket');
+    }
+
+    public function forceDelete(AuthUser $authUser, Ticket $ticket): bool
+    {
+        return $authUser->can('ForceDelete:Ticket');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:Ticket');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:Ticket');
+    }
+
+    public function replicate(AuthUser $authUser, Ticket $ticket): bool
+    {
+        return $authUser->can('Replicate:Ticket');
+    }
+
+    public function reorder(AuthUser $authUser): bool
+    {
+        return $authUser->can('Reorder:Ticket');
     }
 }
