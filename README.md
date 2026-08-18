@@ -504,7 +504,7 @@ Perintah `migrate:fresh` menghapus seluruh tabel beserta datanya. Setelah menjal
 
 ---
 
-## Catatan Pengembangan
+## Notes Pengembangan
 
 Filament Shield aktif penuh: plugin terdaftar pada `AdminPanelProvider`, dan role/permission dapat dikelola melalui antarmuka pada `/admin/shield/roles` selain lewat `RoleSeeder`. Perlu diperhatikan: apabila permission suatu role diubah melalui antarmuka tersebut, tabel Model Hak Akses pada dokumen ini menjadi deskripsi kondisi awal hasil seeder, bukan lagi jaminan kondisi saat ini.
 

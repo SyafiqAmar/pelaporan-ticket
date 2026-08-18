@@ -5,22 +5,18 @@
 @endphp
 
 @if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif']))
-    <div class="overflow-hidden rounded-xl border">
-        <img
-            src="{{ $url }}"
-            alt="Ticket attachment"
-            class="max-h-[600px] w-auto mx-auto"
-        >
-    </div>
+    <img
+        src="{{ $url }}"
+        alt="Ticket attachment"
+        class="w-full max-h-[700px] object-contain rounded-lg"
+    >
 
 @elseif ($extension === 'pdf')
-    <div class="overflow-hidden rounded-xl border">
-        <iframe
-            src="{{ $url }}"
-            class="w-full h-[700px]"
-            title="PDF Preview"
-        ></iframe>
-    </div>
+    <iframe
+        src="{{ $url }}"
+        class="w-full h-[800px] rounded-lg"
+        title="PDF Preview"
+    ></iframe>
 
 @else
     <a
