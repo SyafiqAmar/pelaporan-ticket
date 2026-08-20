@@ -21,20 +21,23 @@ Dokumen ini mencakup seluruh alur dari clone repository sampai pengujian fitur, 
 
 ## Model Hak Akses
 
-Aplikasi menggunakan dua role: `admin` dan `user`.
+Aplikasi menggunakan tiga role: `admin`, `staff_it`, dan `user`.
 
-| Kemampuan | admin | user |
-| --- | --- | --- |
-| Masuk panel `/admin` | Ya | Ya |
-| Membuat tiket | Ya | Ya |
-| Melihat tiket milik sendiri | Ya | Ya |
-| Melihat tiket milik pengguna lain | Ya | Tidak |
-| Mengedit tiket | Ya | Tidak |
-| Menghapus tiket | Ya | Tidak |
-| Menugaskan tiket kepada penanggung jawab | Ya | Tidak |
-| Mengubah status tiket | Ya | Tidak |
+| Kemampuan | admin | staff_it | user |
+| --- | --- | --- | --- |
+| Masuk panel `/admin` | Ya | Ya | Ya |
+| Registrasi akun mandiri | - | - | Ya, lewat `/admin/register` |
+| Membuat tiket | Ya | Tidak | Ya |
+| Melihat tiket | Semua | Hanya yang di-assign ke dirinya | Hanya miliknya sendiri |
+| Mengubah status tiket | Ya | Ya, hanya tiket yang di-assign ke dirinya | Tidak |
+| Mengedit field lain (subject, description, category, priority, attachment) | Ya | Tidak, field terkunci di halaman Edit | Tidak |
+| Menugaskan tiket ke staff | Ya | Tidak | Tidak |
+| Menghapus tiket | Ya | Tidak | Tidak |
+| Mengubah role user lain | Ya, lewat menu Users | Tidak | Tidak |
 
 Pengguna yang tidak memiliki role sama sekali ditolak masuk panel. Perilaku ini disengaja; penanganannya dijelaskan pada bagian Troubleshooting.
+
+Registrasi mandiri (`/admin/register`) otomatis memberi role `user` ke akun baru (`app/Filament/Auth/Register.php`, method `handleRegistration()`). Perubahan role setelahnya hanya bisa dilakukan admin lewat menu **Users** di panel, bukan oleh pengguna itu sendiri.
 
 ### Tiga Lapisan Penegakan
 
@@ -42,11 +45,15 @@ Pengguna yang tidak memiliki role sama sekali ditolak masuk panel. Perilaku ini 
 | --- | --- | --- |
 | Gerbang panel | `app/Models/User.php`, method `canAccessPanel()` | Menolak pengguna tanpa role sebelum panel dirender |
 | Otorisasi aksi | `app/Policies/TicketPolicy.php` | Menentukan izin `view`, `create`, `update`, dan `delete` |
-| Pembatas data | `app/Filament/Resources/Tickets/TicketResource.php`, method `getEloquentQuery()` | Menyaring baris agar role `user` hanya melihat tiket miliknya |
+| Pembatas data | `app/Filament/Resources/Tickets/TicketResource.php`, method `getEloquentQuery()` | Menyaring baris: `admin` melihat semua, `staff_it` hanya tiket yang di-assign ke dirinya, `user` hanya tiket miliknya sendiri |
 
 Policy menjawab pertanyaan "boleh atau tidak", sedangkan scoping query menjawab "terlihat atau tidak". Keduanya wajib ada. Policy saja tidak menyembunyikan baris dari tabel daftar, dan scoping saja tidak menolak akses melalui URL langsung.
 
-Otorisasi aksi diimplementasikan menggunakan permission granular dari Filament Shield, dengan format `Aksi:Model` (contoh: `View:Ticket`, `Update:Ticket`). Role `admin` dikonfigurasi sebagai super admin (`config/filament-shield.php`, `super_admin.define_via_gate = true`) sehingga lolos semua pemeriksaan permission tanpa perlu di-assign satu per satu. Role `user` diberi permission terbatas melalui `RoleSeeder`. Permission dan policy dapat digenerate ulang lewat `php artisan shield:generate --resource=TicketResource --panel=admin`; setelah generate ulang, cek kepemilikan tiket pada method `view`, `update`, dan `delete` di `TicketPolicy` harus ditambahkan kembali secara manual, karena Shield tidak mengenal konsep kepemilikan data.
+Otorisasi aksi diimplementasikan menggunakan permission granular dari Filament Shield, dengan format `Aksi:Model` (contoh: `View:Ticket`, `Update:Ticket`). Role `admin` dikonfigurasi sebagai super admin (`config/filament-shield.php`, `super_admin.define_via_gate = true`) sehingga lolos semua pemeriksaan permission tanpa perlu di-assign satu per satu. Role `staff_it` dan `user` diberi permission terbatas melalui `RoleSeeder`. Permission dan policy dapat digenerate ulang lewat `php artisan shield:generate --resource=TicketResource --panel=admin`; setelah generate ulang, cek kepemilikan tiket pada method `view`, `update`, dan `delete` di `TicketPolicy` harus ditambahkan kembali secara manual, karena Shield tidak mengenal konsep kepemilikan data.
+
+Cek kepemilikan pada `TicketPolicy` membandingkan `$ticket->user_id` (pembuat) **atau** `$ticket->assigned_to` (penanggung jawab) dengan ID pengguna yang login — bukan cuma `user_id` saja. Ini yang memungkinkan `staff_it` (bukan pembuat tiket) tetap bisa membuka tiket yang ditugaskan kepadanya.
+
+Untuk `staff_it`, pembatasan "hanya boleh ubah status" tidak cukup ditegakkan lewat Policy saja, karena Policy `update()` adalah izin untuk satu halaman Edit secara keseluruhan, bukan per-field. Field selain `status` (subject, description, category, priority, attachment) dikunci lewat `->disabled()` di `TicketForm.php`, aktif hanya saat `$operation === 'edit'` dan role bukan `admin`. Field yang `disabled()` di Filament tidak ikut ter-submit saat form disimpan, sehingga ini benar-benar ditegakkan di server, bukan sekadar disembunyikan di tampilan.
 
 ---
 
@@ -141,7 +148,7 @@ Perintah pertama mendaftarkan plugin Shield pada panel `admin`. Perintah kedua m
 php artisan db:seed --class=RoleSeeder
 ```
 
-Langkah ini membuat role `admin` dan `user`, meng-assign permission ke role `user`, serta membuat dua akun untuk pengujian. Tanpa langkah ini tidak ada akun yang dapat masuk ke panel.
+Langkah ini membuat role `admin`, `staff_it`, dan `user`, meng-assign permission ke role `staff_it` dan `user`, serta membuat tiga akun untuk pengujian. Tanpa langkah ini tidak ada akun yang dapat masuk ke panel.
 
 ### 9. Buat storage link
 
@@ -174,6 +181,7 @@ Panel tersedia di `http://127.0.0.1:8000/admin`.
 | Role | Email | Password |
 | --- | --- | --- |
 | admin | `admin@mail.com` | `password` |
+| staff_it | `staffit@mail.com` | `password` |
 | user | `staff@mail.com` | `password` |
 
 Akun dibuat oleh `database/seeders/RoleSeeder.php`. Kredensial ini hanya untuk lingkungan development dan harus diganti sebelum digunakan di lingkungan lain.
@@ -268,6 +276,45 @@ php artisan tinker
 Hasil yang diharapkan: `user_id` berisi ID pembuat tiket dan `status` bernilai `open` untuk tiket yang baru dibuat.
 
 Apabila `user_id` bernilai `null`, method `handleRecordCreation()` pada `CreateTicket.php` tidak terpanggil sebagaimana mestinya.
+
+### F. Sebagai role staff_it (penanganan terbatas)
+
+1. Login sebagai `admin@mail.com`, tugaskan salah satu tiket ke `staffit@mail.com` lewat field Assigned To, simpan.
+2. Logout, login menggunakan `staffit@mail.com` dengan password `password`.
+3. Buka menu Tickets.
+
+   Hasil yang diharapkan: hanya tiket yang baru saja di-assign ke akun ini yang muncul. Tiket lain, termasuk yang dibuat oleh akun ini sendiri jika ada, tidak terlihat kecuali ikut di-assign.
+
+4. Buka tiket tersebut lewat Edit.
+
+   Hasil yang diharapkan: field Assigned To tidak muncul sama sekali. Field Subject, Description, Category, Priority, dan Attachment terlihat tetapi tidak bisa diklik/diubah (terkunci). Hanya field Status yang bisa diubah.
+
+5. Ubah Status, simpan, lalu refresh halaman untuk memastikan perubahan tersimpan.
+6. Coba akses tiket yang **tidak** di-assign ke akun ini lewat URL langsung.
+
+   Hasil yang diharapkan: respons 404 Not Found, sama seperti pengujian kebocoran akses pada Bagian C.
+
+### G. Registrasi mandiri dan pengelolaan role lewat UI
+
+1. Logout, buka `http://127.0.0.1:8000/admin/register`, daftar dengan email baru.
+2. Setelah submit, aplikasi otomatis login dan masuk ke dashboard.
+
+   Hasil yang diharapkan: akun baru hanya bisa melakukan hal-hal yang boleh dilakukan role `user` (lihat Bagian A). Verifikasi lewat Tinker:
+
+   ```php
+   \App\Models\User::latest()->first()->roles->pluck('name');
+   ```
+
+   Hasil yang diharapkan: `['user']`.
+
+3. Logout, login sebagai `admin@mail.com`. Buka menu **Users** di sidebar.
+
+   Hasil yang diharapkan: menu ini hanya terlihat untuk admin — coba login sebagai `staff@mail.com` atau `staffit@mail.com` untuk memastikan menu Users tidak muncul pada akun mereka.
+
+4. Edit akun yang baru saja mendaftar, ubah Role menjadi **Admin IT**, simpan.
+5. Logout, login kembali menggunakan akun tersebut.
+
+   Hasil yang diharapkan: akun sekarang berperilaku seperti admin (bisa melihat semua tiket). Ini membuktikan role benar-benar **diganti** (bukan ditambah) oleh `EditUser::handleRecordUpdate()`, yang memanggil `syncRoles()`.
 
 ---
 
@@ -375,19 +422,28 @@ app/
 │   └── TicketStatus.php
 │
 ├── Filament/
+│   ├── Auth/
+│   │   └── Register.php                  handleRegistration: auto-assign role user
+│   │
 │   └── Resources/
-│       └── Tickets/
+│       ├── Tickets/
+│       │   ├── Pages/
+│       │   │   ├── CreateTicket.php      handleRecordCreation: user_id dan status
+│       │   │   ├── EditTicket.php
+│       │   │   ├── ListTickets.php
+│       │   │   └── ViewTicket.php
+│       │   ├── Schemas/
+│       │   │   ├── TicketForm.php        visibilitas + disabled field per role
+│       │   │   └── TicketInfolist.php
+│       │   ├── Tables/
+│       │   │   └── TicketsTable.php
+│       │   └── TicketResource.php        getEloquentQuery: scoping 3 role
+│       │
+│       └── Users/
 │           ├── Pages/
-│           │   ├── CreateTicket.php      handleRecordCreation: user_id dan status
-│           │   ├── EditTicket.php
-│           │   ├── ListTickets.php
-│           │   └── ViewTicket.php
-│           ├── Schemas/
-│           │   ├── TicketForm.php        visibilitas field berdasarkan role
-│           │   └── TicketInfolist.php
-│           ├── Tables/
-│           │   └── TicketsTable.php
-│           └── TicketResource.php        getEloquentQuery: scoping data
+│           │   ├── EditUser.php          handleRecordUpdate: syncRoles
+│           │   └── ListUsers.php
+│           └── UserResource.php          khusus admin, ganti role user lain
 │
 ├── Models/
 │   ├── Ticket.php                        HasFactory, casts, relasi
@@ -395,6 +451,7 @@ app/
 │
 └── Policies/
     ├── TicketPolicy.php                  permission Shield + cek kepemilikan tiket
+    ├── UserPolicy.php                    akses menu Users dibatasi admin
     └── RolePolicy.php                    hasil generate shield:install
 
 database/
@@ -403,14 +460,14 @@ database/
 ├── migrations/
 └── seeders/
     ├── DatabaseSeeder.php
-    └── RoleSeeder.php                    role admin dan user, assign permission, akun demo
+    └── RoleSeeder.php                    role admin, staff_it, user, assign permission, akun demo
 
 resources/views/filament/tickets/
 └── previewdetail.blade.php
 
 tests/
 ├── Feature/
-│   └── TicketAuthorizationTest.php       panel access, scoping, dan policy
+│   └── TicketAuthorizationTest.php       panel access, scoping, dan policy 3 role
 └── Unit/
     └── TicketMassAssignmentTest.php      proteksi mass assignment user_id
 ```
@@ -446,6 +503,16 @@ Pastikan `RoleSeeder` menggunakan key `name`, bukan `user`:
 Role::firstOrCreate(['name' => 'user']);
 ```
 
+### Login gagal dengan pesan "These credentials do not match our records" padahal password benar
+
+Filament memverifikasi password dan `canAccessPanel()` dalam satu langkah (`attemptWhen()`), dan sengaja menampilkan pesan generik yang sama untuk kedua jenis kegagalan itu — supaya email yang valid tidak bisa ditebak dari luar. Kalau password sudah pasti benar, penyebabnya biasanya nama role tidak cocok persis antara yang disimpan di database dan yang dicek di `canAccessPanel()` (`app/Models/User.php`). Nama role di Spatie Permission adalah string biasa dan **case-sensitive** — `staff_IT` tidak sama dengan `staff_it`. Cek dengan Tinker:
+
+```php
+\App\Models\User::where('email', 'alamat@mail.com')->first()->roles->pluck('name');
+```
+
+Cocokkan hasilnya persis huruf besar/kecilnya dengan daftar role pada `canAccessPanel()`.
+
 ### Migration gagal dijalankan
 
 Pastikan berkas `database/database.sqlite` sudah tersedia, kemudian jalankan kembali `php artisan migrate`.
@@ -471,7 +538,7 @@ npm run dev
 
 ## Testing Otomatis
 
-Aturan hak akses pada bagian Alur Pengujian Fitur (A-E) dituangkan sebagai automated test, sehingga dapat diverifikasi ulang dalam hitungan detik tanpa mengulang langkah manual di browser.
+Aturan hak akses pada bagian Alur Pengujian Fitur (A-F) dituangkan sebagai automated test, sehingga dapat diverifikasi ulang dalam hitungan detik tanpa mengulang langkah manual di browser.
 
 ```bash
 php artisan test
@@ -479,8 +546,10 @@ php artisan test
 
 | File | Yang diverifikasi |
 | --- | --- |
-| `tests/Feature/TicketAuthorizationTest.php` | Gerbang panel, scoping daftar tiket per role, akses view/edit tiket lintas pengguna |
+| `tests/Feature/TicketAuthorizationTest.php` | Gerbang panel, scoping daftar tiket untuk ketiga role, akses view/edit tiket lintas pengguna, scoping berdasarkan `assigned_to` untuk `staff_it` |
 | `tests/Unit/TicketMassAssignmentTest.php` | `user_id` tidak dapat diisi melalui mass assignment |
+
+Alur registrasi (Bagian G) dan halaman Users belum memiliki automated test — masih diverifikasi manual.
 
 `TicketAuthorizationTest` menggunakan `RefreshDatabase` sehingga berjalan pada database SQLite in-memory terpisah dan tidak menyentuh `database/database.sqlite`.
 
@@ -510,7 +579,10 @@ Filament Shield aktif penuh: plugin terdaftar pada `AdminPanelProvider`, dan rol
 
 Attachment tetap menggunakan satu kolom `attachment_path` (satu berkas per tiket) sesuai keputusan pemberi task, bukan tabel terpisah.
 
+Registrasi mandiri aktif di `/admin/register` (`app/Filament/Auth/Register.php`). Setelah daftar, Filament otomatis login-kan akun baru (perilaku bawaan package, bukan kustomisasi) — pada saat itu role `user` sudah ter-assign lebih dulu di dalam `handleRegistration()`, jadi tidak ada celah waktu akun baru gagal masuk panel. Perubahan role dilakukan admin lewat menu **Users**, yang mengganti (bukan menambah) role lewat `syncRoles()`.
+
 Rencana pengembangan berikutnya:
 
 - Filter dan pencarian tiket berdasarkan status dan priority.
 - Notifikasi ketika tiket ditugaskan atau statusnya berubah.
+- Automated test untuk alur registrasi dan pengelolaan role lewat UserResource.

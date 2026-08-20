@@ -62,10 +62,16 @@ class TicketResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (Auth::user()?->hasRole('admin')) {
+        $user = Auth::user();
+
+        if ($user?->hasRole('admin')) {
             return $query;
         }
 
-        return $query->where('user_id', Auth::id());
+        if ($user?->hasRole('staff_it')) {
+            return $query->where('assigned_to', $user->id);
+        }
+
+        return $query->where('user_id', $user?->id);
     }
 }

@@ -12,12 +12,24 @@ class RoleSeeder extends Seeder
     {
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $user = Role::firstOrCreate(['name' => 'user']);
+        $staffIt = Role::firstOrCreate(['name' => 'staff_it']);
 
         $user->givePermissionTo([
             'View:Ticket',
             'ViewAny:Ticket',
             'Create:Ticket',
         ]);
+
+        $staffIt->givePermissionTo([
+            'View:Ticket',
+            'ViewAny:Ticket',
+            'Update:Ticket',
+        ]);
+
+        User::firstOrCreate(
+            ['email' => 'staffit@mail.com'],
+            ['name' => 'staff it', 'password' => 'password']
+        )->assignRole($staffIt);
 
         User::firstOrCreate(
             ['email' => 'admin@mail.com'],

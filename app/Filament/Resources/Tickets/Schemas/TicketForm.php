@@ -15,21 +15,28 @@ class TicketForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $isReadOnlyForNonAdmin = fn (string $operation) => $operation === 'edit'
+            && ! Auth::user()?->hasRole('admin');
+
         return $schema
             ->components([
                 TextInput::make('subject')
-                    ->required(),
-                    
+                    ->required()
+                    ->disabled($isReadOnlyForNonAdmin),
+
                 Textarea::make('description')
                     ->required()
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->disabled($isReadOnlyForNonAdmin),
 
                 TextInput::make('category')
-                    ->required(),
+                    ->required()
+                    ->disabled($isReadOnlyForNonAdmin),
 
                 Select::make('priority')
                     ->options(TicketPriority::class)
-                    ->required(),
+                    ->required()
+                    ->disabled($isReadOnlyForNonAdmin),
 
                 Select::make('assigned_to')
                     ->label('Assigned To')
@@ -42,13 +49,14 @@ class TicketForm
                 Select::make('status')
                     ->options(TicketStatus::class)
                     ->required()
-                    ->visible(fn () => Auth::user()?->hasRole('admin'))
+                    ->visible(fn () => Auth::user()?->hasAnyRole(['admin', 'staff_it']))
                     ->hiddenOn('create'),
-                    
+
                 FileUpload::make('attachment_path')
                     ->disk('public')
                     ->directory('tickets')
-                    ->nullable(),
+                    ->nullable()
+                    ->disabled($isReadOnlyForNonAdmin),
             ]);
     }
 }
