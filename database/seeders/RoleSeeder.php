@@ -27,18 +27,19 @@ class RoleSeeder extends Seeder
         ]);
 
         User::firstOrCreate(
-            ['email' => 'staffit@mail.com'],
-            ['name' => 'staff it', 'password' => 'password']
-        )->assignRole($staffIt);
+    ['email' => 'staffit@mail.com'],
+    ['name' => 'Staff IT', 'password' => 'password']
+)->assignRole($staffIt);
 
-        User::firstOrCreate(
-            ['email' => 'admin@mail.com'],
-            ['name' => 'admin IT', 'password' => 'password'],
-        )->assignRole($admin);
+User::firstOrCreate(
+    ['email' => 'admin@mail.com'],
+    ['name' => 'Admin IT', 'password' => 'password'],
+)->assignRole($admin);
 
-        User::firstOrCreate(
-            ['email' => 'staff@mail.com'],
-            ['name' => 'staff', 'password' => 'password'],
-        )->assignRole($user);
+User::firstOrCreate(
+    ['email' => 'staff@mail.com'],
+    ['name' => 'Karyawan', 'password' => 'password'],
+)->assignRole($user);
+
     }
 }
