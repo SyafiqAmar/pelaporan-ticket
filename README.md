@@ -39,6 +39,8 @@ Pengguna yang tidak memiliki role sama sekali ditolak masuk panel. Perilaku ini 
 
 Registrasi mandiri (`/admin/register`) otomatis memberi role `user` ke akun baru (`app/Filament/Auth/Register.php`, method `handleRegistration()`). Perubahan role setelahnya hanya bisa dilakukan admin lewat menu **Users** di panel, bukan oleh pengguna itu sendiri.
 
+Akses ke menu Users diatur `app/Policies/UserPolicy.php`, permission-based sama seperti `TicketPolicy` (`ViewAny:User`, `View:User`, `Update:User`). Secara default hanya `admin` yang punya akses, lewat bypass Gate yang sama. Berbeda dari resource lain, permission untuk model `User` **belum** digenerate lewat `shield:generate` — baris permission-nya baru dibuat otomatis saat pertama kali dicentang dan disimpan di halaman `/admin/shield/roles`. Kalau suatu saat admin mencentang box "View"/"View Any" pada card User untuk role lain (misal `staff_it`) di halaman itu, role tersebut **akan** ikut mendapat akses ke menu Users — tabel Model Hak Akses di atas mendeskripsikan kondisi default hasil seeder, bukan batas yang tidak bisa diubah.
+
 ### Tiga Lapisan Penegakan
 
 | Lapisan | Lokasi | Tanggung jawab |
@@ -451,7 +453,7 @@ app/
 │
 └── Policies/
     ├── TicketPolicy.php                  permission Shield + cek kepemilikan tiket
-    ├── UserPolicy.php                    akses menu Users dibatasi admin
+    ├── UserPolicy.php                    permission-based, default hanya admin
     └── RolePolicy.php                    hasil generate shield:install
 
 database/
