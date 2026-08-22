@@ -318,6 +318,21 @@ Apabila `user_id` bernilai `null`, method `handleRecordCreation()` pada `CreateT
 
    Hasil yang diharapkan: akun sekarang berperilaku seperti admin (bisa melihat semua tiket). Ini membuktikan role benar-benar **diganti** (bukan ditambah) oleh `EditUser::handleRecordUpdate()`, yang memanggil `syncRoles()`.
 
+### H. Mengelola dan melihat FAQ
+
+1. Login sebagai `admin@mail.com`. Buka menu **Faqs**, klik **Tambah Faq**.
+2. Isi Question, lalu tulis Answer memakai toolbar Rich Editor (bold, heading, bullet list, dst), simpan.
+
+   Hasil yang diharapkan: setelah simpan, otomatis kembali ke daftar Faqs (bukan ke halaman Edit).
+
+3. Logout (tidak perlu login sama sekali), buka `http://127.0.0.1:8000/faq`.
+
+   Hasil yang diharapkan: FAQ yang baru dibuat muncul, bisa diklik untuk expand, dan format dari Rich Editor (bold, list, dst) tampil benar, bukan tercetak sebagai tag HTML mentah.
+
+4. Login sebagai `staff@mail.com` atau `staffit@mail.com`.
+
+   Hasil yang diharapkan: menu **Faqs** tidak muncul di sidebar — akses menu ini default hanya untuk admin.
+
 ---
 
 ## Struktur Data
@@ -415,6 +430,37 @@ Preview ditampilkan pada halaman View Ticket melalui `resources/views/filament/t
 
 ---
 
+## FAQ
+
+Halaman FAQ publik menampilkan daftar pertanyaan-jawaban yang dikelola admin lewat panel, dapat dilihat siapa saja tanpa login.
+
+### Tabel faqs
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | bigint | Primary key |
+| `question` | string | Pertanyaan |
+| `answer` | longText | Jawaban, berisi HTML hasil Rich Editor |
+| `created_at`, `updated_at` | timestamp | Dikelola Eloquent |
+
+### Pengelolaan (khusus admin)
+
+Menu **Faqs** di panel (`/admin/faqs`) memakai `RichEditor` Filament pada field `answer`, sehingga admin bisa memformat jawaban (bold, heading, list, tabel, dst) tanpa menulis HTML manual. Hasilnya disimpan sebagai HTML mentah pada kolom `answer`, bukan JSON — `RichEditor` bekerja seperti ini secara default, kecuali dipanggil dengan `->json()`.
+
+Akses menu ini diatur `app/Policies/FaqPolicy.php`, permission-based mengikuti pola `TicketPolicy`/`UserPolicy` (`ViewAny:Faq`, `Create:Faq`, `Update:Faq`, `Delete:Faq`). Secara default hanya `admin` yang punya akses lewat bypass Gate; permission untuk role lain baru dibuat otomatis saat dicentang di `/admin/shield/roles`, sama seperti `UserPolicy`.
+
+### Tampilan publik
+
+```
+http://127.0.0.1:8000/faq
+```
+
+Route ini didefinisikan langsung di `routes/web.php`, di luar panel Filament — tidak melewati middleware auth panel, sehingga bisa diakses tanpa login. View-nya (`resources/views/faq.blade.php`) menampilkan tiap FAQ sebagai elemen `<details>`/`<summary>` native HTML (accordion collapsible tanpa JavaScript), dan me-render `answer` dengan `{!! !!}` — bukan `{{ }}` — supaya tag HTML dari Rich Editor tampil terformat, bukan tercetak sebagai teks mentah.
+
+Merender HTML tanpa sanitasi di sini aman karena kontennya **cuma bisa ditulis lewat panel admin**, yang sudah dibatasi `FaqPolicy`. Kalau suatu saat role lain diberi akses tulis FAQ lewat UI Shield, pertimbangkan menambahkan pembersih HTML (misalnya `mews/purifier`) sebelum data disimpan.
+
+---
+
 ## Struktur Project
 
 ```text
@@ -441,17 +487,26 @@ app/
 │       │   │   └── TicketsTable.php
 │       │   └── TicketResource.php        getEloquentQuery: scoping 3 role
 │       │
-│       └── Users/
+│       ├── Users/
+│       │   ├── Pages/
+│       │   │   ├── EditUser.php          handleRecordUpdate: syncRoles
+│       │   │   └── ListUsers.php
+│       │   └── UserResource.php          khusus admin, ganti role user lain
+│       │
+│       └── Faqs/
 │           ├── Pages/
-│           │   ├── EditUser.php          handleRecordUpdate: syncRoles
-│           │   └── ListUsers.php
-│           └── UserResource.php          khusus admin, ganti role user lain
+│           │   ├── CreateFaq.php         redirect ke index setelah simpan
+│           │   ├── EditFaq.php
+│           │   └── ListFaqs.php
+│           └── FaqResource.php           form RichEditor pada field answer
 │
 ├── Models/
+│   ├── Faq.php
 │   ├── Ticket.php                        HasFactory, casts, relasi
 │   └── User.php                          canAccessPanel dan trait HasRoles
 │
 └── Policies/
+    ├── FaqPolicy.php                     permission-based, default hanya admin
     ├── TicketPolicy.php                  permission Shield + cek kepemilikan tiket
     ├── UserPolicy.php                    permission-based, default hanya admin
     └── RolePolicy.php                    hasil generate shield:install
@@ -464,8 +519,12 @@ database/
     ├── DatabaseSeeder.php
     └── RoleSeeder.php                    role admin, staff_it, user, assign permission, akun demo
 
-resources/views/filament/tickets/
-└── previewdetail.blade.php
+resources/views/
+├── faq.blade.php                         halaman publik /faq
+└── filament/tickets/
+    └── previewdetail.blade.php
+
+routes/web.php                            route publik /faq (di luar panel Filament)
 
 tests/
 ├── Feature/
@@ -540,7 +599,7 @@ npm run dev
 
 ## Testing Otomatis
 
-Aturan hak akses pada bagian Alur Pengujian Fitur (A-F) dituangkan sebagai automated test, sehingga dapat diverifikasi ulang dalam hitungan detik tanpa mengulang langkah manual di browser.
+Aturan hak akses pada bagian Alur Pengujian Fitur (A-F) dituangkan sebagai automated test, sehingga dapat diverifikasi ulang dalam hitungan detik tanpa mengulang langkah manual di browser. Fitur FAQ (Bagian H) belum memiliki automated test.
 
 ```bash
 php artisan test
@@ -583,8 +642,10 @@ Attachment tetap menggunakan satu kolom `attachment_path` (satu berkas per tiket
 
 Registrasi mandiri aktif di `/admin/register` (`app/Filament/Auth/Register.php`). Setelah daftar, Filament otomatis login-kan akun baru (perilaku bawaan package, bukan kustomisasi) — pada saat itu role `user` sudah ter-assign lebih dulu di dalam `handleRegistration()`, jadi tidak ada celah waktu akun baru gagal masuk panel. Perubahan role dilakukan admin lewat menu **Users**, yang mengganti (bukan menambah) role lewat `syncRoles()`.
 
+Halaman FAQ (`/faq`) merender `answer` sebagai HTML mentah tanpa sanitasi — sengaja, karena penulisnya dibatasi `FaqPolicy` ke admin saja. Kalau nanti role lain diberi akses tulis FAQ, tambahkan pembersih HTML sebelum data disimpan.
+
 Rencana pengembangan berikutnya:
 
 - Filter dan pencarian tiket berdasarkan status dan priority.
 - Notifikasi ketika tiket ditugaskan atau statusnya berubah.
-- Automated test untuk alur registrasi dan pengelolaan role lewat UserResource.
+- Automated test untuk alur registrasi, pengelolaan role lewat UserResource, dan fitur FAQ.
