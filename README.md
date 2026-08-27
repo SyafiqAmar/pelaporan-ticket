@@ -14,6 +14,7 @@ Dokumen ini mencakup seluruh alur dari clone repository sampai pengujian fitur, 
 | Laravel | ^13.17 |
 | Filament | ^5.7 |
 | Spatie Laravel Permission | disertakan melalui Filament Shield ^4.3 |
+| Laravel Sanctum | Autentikasi token untuk REST API |
 | Database | SQLite |
 | Frontend | Vite + Tailwind CSS |
 
@@ -152,7 +153,19 @@ php artisan db:seed --class=RoleSeeder
 
 Langkah ini membuat role `admin`, `staff_it`, dan `user`, meng-assign permission ke role `staff_it` dan `user`, serta membuat tiga akun untuk pengujian. Tanpa langkah ini tidak ada akun yang dapat masuk ke panel.
 
-### 9. Buat storage link
+### 9. Pasang Sanctum (untuk REST API)
+
+```bash
+php artisan install:api
+```
+
+Perintah ini membuat `routes/api.php`, migration tabel `personal_access_tokens`, dan menambahkan trait `HasApiTokens` ke `User.php`. Migration ikut dijalankan otomatis lewat prompt yang muncul (pilih Yes), atau jalankan manual:
+
+```bash
+php artisan migrate
+```
+
+### 10. Buat storage link
 
 ```bash
 php artisan storage:link
@@ -160,7 +173,7 @@ php artisan storage:link
 
 Attachment disimpan di `storage/app/public/tickets` dan diakses melalui `public/storage`.
 
-### 10. Jalankan aplikasi
+### 11. Jalankan aplikasi
 
 Gunakan dua terminal terpisah:
 
@@ -461,6 +474,85 @@ Merender HTML tanpa sanitasi di sini aman karena kontennya **cuma bisa ditulis l
 
 ---
 
+## REST API
+
+Tickets dan FAQ juga tersedia lewat REST API (`/api/...`), di luar panel Filament, memakai autentikasi token (Laravel Sanctum). Otorisasinya **reuse** `TicketPolicy`/`FaqPolicy` yang sama dengan panel admin — bukan aturan akses baru yang terpisah.
+
+### Autentikasi
+
+```
+POST /api/login
+```
+
+Body:
+
+```json
+{ "email": "admin@mail.com", "password": "password" }
+```
+
+Respons berisi `token` — dikirim di header tiap request terproteksi:
+
+```
+Authorization: Bearer <token>
+```
+
+```
+POST /api/logout
+```
+
+Menghapus token yang sedang dipakai (butuh header `Authorization` di atas).
+
+### Endpoint Tickets (semua wajib token)
+
+| Method | URL | Keterangan |
+| --- | --- | --- |
+| GET | `/api/tickets` | Daftar tiket, di-scope sama seperti panel: admin semua, `staff_it` hanya yang di-assign, `user` hanya miliknya |
+| POST | `/api/tickets` | Buat tiket baru (`subject`, `description`, `category`, `priority`) |
+| GET | `/api/tickets/{id}` | Detail satu tiket |
+| PUT | `/api/tickets/{id}` | Update tiket. Non-admin hanya boleh mengirim `status` — field lain (`subject`, `description`, `category`, `priority`, `assigned_to`) ditolak `422` (`prohibited`) kalau ikut dikirim |
+| DELETE | `/api/tickets/{id}` | Hapus tiket (admin saja) |
+
+Berbeda dari panel Filament (yang membalas **404** untuk tiket di luar jangkauan, karena query sudah di-scope duluan sebelum Policy sempat jalan), API membalas **403 Forbidden** untuk tiket yang ada tapi bukan hak akses pengguna — ini perilaku standar REST API, bukan bug.
+
+### Endpoint FAQ
+
+| Method | URL | Auth | Keterangan |
+| --- | --- | --- | --- |
+| GET | `/api/faqs` | Tidak perlu | Daftar FAQ, publik |
+| GET | `/api/faqs/{id}` | Tidak perlu | Detail satu FAQ, publik |
+| POST | `/api/faqs` | Token, admin | Buat FAQ baru (`question`, `answer`) |
+| PUT | `/api/faqs/{id}` | Token, admin | Update FAQ |
+| DELETE | `/api/faqs/{id}` | Token, admin | Hapus FAQ |
+
+### Berkas terkait
+
+| Berkas | Fungsi |
+| --- | --- |
+| `routes/api.php` | Definisi seluruh route API |
+| `app/Http/Controllers/Api/AuthController.php` | Login (issue token) dan logout |
+| `app/Http/Controllers/Api/TicketController.php` | CRUD tiket |
+| `app/Http/Controllers/Api/FaqController.php` | CRUD FAQ |
+| `app/Http/Resources/TicketResource.php`, `FaqResource.php` | Bentuk JSON response |
+| `app/Models/Ticket.php`, method `scopeVisibleTo()` | Aturan scoping data, dipakai bareng oleh panel dan API |
+
+### Testing
+
+Koleksi Postman siap pakai: `pelaporan-tiket-api.postman_collection.json` (tinggal Import). Request **Login** otomatis menyimpan token ke variable collection setelah dijalankan, jadi request lain langsung terautentikasi.
+
+Automated test:
+
+```bash
+php artisan test --filter=Api
+```
+
+| File | Yang diverifikasi |
+| --- | --- |
+| `tests/Feature/Api/AuthApiTest.php` | Login sukses/gagal, logout |
+| `tests/Feature/Api/TicketApiTest.php` | Scoping per role, validasi `prohibited` untuk non-admin, akses lintas pengguna (403) |
+| `tests/Feature/Api/FaqApiTest.php` | Index/show publik, create/update/delete admin only |
+
+---
+
 ## Struktur Project
 
 ```text
@@ -500,10 +592,19 @@ app/
 │           │   └── ListFaqs.php
 │           └── FaqResource.php           form RichEditor pada field answer
 │
+├── Http/
+│   ├── Controllers/Api/
+│   │   ├── AuthController.php            login (issue token) dan logout
+│   │   ├── TicketController.php          CRUD tiket, reuse TicketPolicy
+│   │   └── FaqController.php             CRUD faq, index/show publik
+│   └── Resources/
+│       ├── TicketResource.php            bentuk JSON response tiket
+│       └── FaqResource.php               bentuk JSON response faq
+│
 ├── Models/
-│   ├── Faq.php
-│   ├── Ticket.php                        HasFactory, casts, relasi
-│   └── User.php                          canAccessPanel dan trait HasRoles
+│   ├── Faq.php                           HasFactory
+│   ├── Ticket.php                        HasFactory, casts, relasi, scopeVisibleTo
+│   └── User.php                          canAccessPanel dan trait HasRoles, HasApiTokens
 │
 └── Policies/
     ├── FaqPolicy.php                     permission-based, default hanya admin
@@ -513,6 +614,7 @@ app/
 
 database/
 ├── factories/
+│   ├── FaqFactory.php
 │   └── TicketFactory.php
 ├── migrations/
 └── seeders/
@@ -524,11 +626,17 @@ resources/views/
 └── filament/tickets/
     └── previewdetail.blade.php
 
-routes/web.php                            route publik /faq (di luar panel Filament)
+routes/
+├── web.php                                route publik /faq (di luar panel Filament)
+└── api.php                                seluruh route REST API
 
 tests/
 ├── Feature/
-│   └── TicketAuthorizationTest.php       panel access, scoping, dan policy 3 role
+│   ├── TicketAuthorizationTest.php       panel access, scoping, dan policy 3 role
+│   └── Api/
+│       ├── AuthApiTest.php               login, logout
+│       ├── TicketApiTest.php             scoping, prohibited fields, akses lintas user
+│       └── FaqApiTest.php                index/show publik, CRUD admin only
 └── Unit/
     └── TicketMassAssignmentTest.php      proteksi mass assignment user_id
 ```

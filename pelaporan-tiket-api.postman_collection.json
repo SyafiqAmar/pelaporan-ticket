@@ -1,0 +1,180 @@
+{
+"info": {
+    "name": "Pelaporan Tiket API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+},
+"variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@mail.com\",\n  \"password\": \"password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/logout", "host": ["{{base_url}}"], "path": ["logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "List Tickets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/tickets", "host": ["{{base_url}}"], "path": ["tickets"] }
+          }
+        },
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Printer rusak\",\n  \"description\": \"Tidak bisa print dari lantai 2\",\n  \"category\": \"hardware\",\n  \"priority\": \"medium\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tickets", "host": ["{{base_url}}"], "path": ["tickets"] }
+          }
+        },
+        {
+          "name": "Show Ticket",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/tickets/1", "host": ["{{base_url}}"], "path": ["tickets", "1"] }
+          }
+        },
+        {
+          "name": "Update Ticket Status (staff_it atau admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tickets/1", "host": ["{{base_url}}"], "path": ["tickets", "1"] }
+          }
+        },
+        {
+          "name": "Update Ticket Full (admin, termasuk assign)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Printer rusak - urgent\",\n  \"assigned_to\": 2,\n  \"status\": \"in_progress\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tickets/1", "host": ["{{base_url}}"], "path": ["tickets", "1"] }
+          }
+        },
+        {
+          "name": "Delete Ticket (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/tickets/1", "host": ["{{base_url}}"], "path": ["tickets", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FAQs",
+      "item": [
+        {
+          "name": "List FAQs (publik, tanpa token)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/faqs", "host": ["{{base_url}}"], "path": ["faqs"] }
+          }
+        },
+        {
+          "name": "Show FAQ (publik, tanpa token)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/faqs/1", "host": ["{{base_url}}"], "path": ["faqs", "1"] }
+          }
+        },
+        {
+          "name": "Create FAQ (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Bagaimana cara reset password?\",\n  \"answer\": \"<p>Klik <strong>Forgot Password</strong> di halaman login.</p>\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/faqs", "host": ["{{base_url}}"], "path": ["faqs"] }
+          }
+        },
+        {
+          "name": "Update FAQ (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answer\": \"<p>Klik <strong>Forgot Password</strong>, lalu cek email.</p>\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/faqs/1", "host": ["{{base_url}}"], "path": ["faqs", "1"] }
+          }
+        },
+        {
+          "name": "Delete FAQ (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/faqs/1", "host": ["{{base_url}}"], "path": ["faqs", "1"] }
+          }
+        }
+      ]
+    }
+  ]
+}
