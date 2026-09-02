@@ -4,14 +4,14 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\TicketController;
 use Illuminate\Support\Facades\Route;
+use Orion\Facades\Orion;
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::apiResource('faqs', FaqController::class)->only(['index', 'show']);
+Orion::resource('faqs', FaqController::class)->withoutMiddleware(['auth:sanctum']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    Route::apiResource('tickets', TicketController::class);
-    Route::apiResource('faqs', FaqController::class)->except(['index', 'show']);
+    Orion::resource('tickets', TicketController::class);
 });

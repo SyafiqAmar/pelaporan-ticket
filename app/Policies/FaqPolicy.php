@@ -7,15 +7,15 @@ use App\Models\User;
 
 class FaqPolicy
 {
-    public function viewAny(User $user): bool
+    public function viewAny(?User $user): bool
     {
-        return $user->can('ViewAny:Faq');
+        return true;
     }
 
     
     public function view(User $user, Faq $faq): bool
     {
-        return $user->can('View:Faq');
+        return true;
     }
 
     public function create(User $user): bool
