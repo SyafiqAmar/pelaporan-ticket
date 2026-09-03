@@ -34,13 +34,13 @@ class TicketController extends Controller
 
     protected function beforeSave(Request $request, Model $ticket): void
     {
-        // if (! $ticket->exists) {
-        //     $request->validate([
-        //         'subject' => 'required|string|max:255',
-        //         'description' => 'required|string',
-        //         'category' => 'required|string|max:255',
-        //         'priority' => 'required|in:low,medium,high',
-        //     ]);
+        if (! $ticket->exists) {
+            $request->validate([
+                'subject' => 'required|string|max:255',
+                'description' => 'required|string',
+                'category' => 'required|string|max:255',
+                'priority' => 'required|in:low,medium,high',
+            ]);
 
             $ticket->user_id = $request->user()->id;
             $ticket->status = TicketStatus::OPEN;

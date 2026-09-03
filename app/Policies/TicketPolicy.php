@@ -59,10 +59,10 @@ class TicketPolicy
         return $authUser->can('ForceDeleteAny:Ticket');
     }
 
-    // public function restoreAny(AuthUser $authUser): bool
-    // {
-    //     return $authUser->can('RestoreAny:Ticket');
-    // }
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:Ticket');
+    }
 
     public function replicate(AuthUser $authUser, Ticket $ticket): bool
     {

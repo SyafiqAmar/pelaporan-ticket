@@ -13,7 +13,7 @@ class FaqPolicy
     }
 
     
-    public function view(User $user, Faq $faq): bool
+    public function view(?User $user, Faq $faq): bool
     {
         return true;
     }
