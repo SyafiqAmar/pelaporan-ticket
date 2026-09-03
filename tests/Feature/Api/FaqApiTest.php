@@ -61,7 +61,7 @@ class FaqApiTest extends TestCase
     public function test_admin_can_create_faq_via_api(): void
     {
         $admin = $this->makeUser('admin');
-        Sanctum::actingAs($admin, ['*'], 'api');
+        Sanctum::actingAs($admin, ['*']);
 
         $response = $this->postJson('/api/faqs', [
             'question' => 'Bagaimana cara reset password?',
@@ -75,7 +75,7 @@ class FaqApiTest extends TestCase
     public function test_non_admin_cannot_create_faq_via_api(): void
     {
         $user = $this->makeUser('user');
-        Sanctum::actingAs($user, ['*'], 'api');
+        Sanctum::actingAs($user, ['*']);
 
         $this->postJson('/api/faqs', [
             'question' => 'Test',
@@ -87,7 +87,7 @@ class FaqApiTest extends TestCase
     {
         $admin = $this->makeUser('admin');
         $faq = Faq::factory()->create();
-        Sanctum::actingAs($admin, ['*'], 'api');
+        Sanctum::actingAs($admin, ['*']);
 
         $this->putJson("/api/faqs/{$faq->id}", [
             'answer' => '<p>Jawaban baru</p>',
@@ -100,9 +100,9 @@ class FaqApiTest extends TestCase
     {
         $admin = $this->makeUser('admin');
         $faq = Faq::factory()->create();
-        Sanctum::actingAs($admin, ['*'], 'api');
+        Sanctum::actingAs($admin, ['*']);
 
-        $this->deleteJson("/api/faqs/{$faq->id}")->assertNoContent();
+        $this->deleteJson("/api/faqs/{$faq->id}")->assertOk();
         $this->assertDatabaseMissing('faqs', ['id' => $faq->id]);
     }
 }

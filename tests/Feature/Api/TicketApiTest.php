@@ -67,7 +67,7 @@ class TicketApiTest extends TestCase
     public function test_user_can_create_ticket_via_api(): void
     {
         $user = $this->makeUser('user');
-        Sanctum::actingAs($user, ['*'], 'api');
+        Sanctum::actingAs($user, ['*']);
 
         $response = $this->postJson('/api/tickets', [
             'subject' => 'Printer rusak',
@@ -87,7 +87,7 @@ class TicketApiTest extends TestCase
     public function test_creating_ticket_without_required_fields_fails_validation(): void
     {
         $user = $this->makeUser('user');
-        Sanctum::actingAs($user, ['*'], 'api');
+        Sanctum::actingAs($user, ['*']);
 
         $this->postJson('/api/tickets', [])->assertStatus(422);
     }
@@ -100,7 +100,7 @@ class TicketApiTest extends TestCase
         $ownTicket = $this->ticketOwnedBy($owner);
         $this->ticketOwnedBy($other);
 
-        Sanctum::actingAs($owner, ['*'], 'api');
+        Sanctum::actingAs($owner, ['*']);
 
         $this->getJson('/api/tickets')
             ->assertOk()
@@ -116,7 +116,7 @@ class TicketApiTest extends TestCase
         $assignedTicket = $this->ticketAssignedTo($staffIt);
         $this->ticketAssignedTo($otherStaffIt);
 
-        Sanctum::actingAs($staffIt, ['*'], 'api');
+        Sanctum::actingAs($staffIt, ['*']);
 
         $this->getJson('/api/tickets')
             ->assertOk()
@@ -130,7 +130,7 @@ class TicketApiTest extends TestCase
         $this->ticketOwnedBy($this->makeUser('user'));
         $this->ticketOwnedBy($this->makeUser('user'));
 
-        Sanctum::actingAs($admin, ['*'], 'api');
+        Sanctum::actingAs($admin, ['*']);
 
         $this->getJson('/api/tickets')->assertOk()->assertJsonCount(2, 'data');
     }
@@ -141,7 +141,7 @@ class TicketApiTest extends TestCase
         $intruder = $this->makeUser('user');
         $ticket = $this->ticketOwnedBy($owner);
 
-        Sanctum::actingAs($intruder, ['*'], 'api');
+        Sanctum::actingAs($intruder, ['*']);
 
         $this->getJson("/api/tickets/{$ticket->id}")->assertNotFound();
     }
@@ -151,7 +151,7 @@ class TicketApiTest extends TestCase
         $staffIt = $this->makeUser('staff_it');
         $ticket = $this->ticketAssignedTo($staffIt);
 
-        Sanctum::actingAs($staffIt, ['*'], 'api');
+        Sanctum::actingAs($staffIt, ['*']);
 
         $this->putJson("/api/tickets/{$ticket->id}", [
             'subject' => 'Coba ubah subject',
@@ -163,7 +163,7 @@ class TicketApiTest extends TestCase
         $staffIt = $this->makeUser('staff_it');
         $ticket = $this->ticketAssignedTo($staffIt);
 
-        Sanctum::actingAs($staffIt, ['*'], 'api');
+        Sanctum::actingAs($staffIt, ['*']);
 
         $this->putJson("/api/tickets/{$ticket->id}", [
             'status' => 'in_progress',
@@ -180,9 +180,9 @@ class TicketApiTest extends TestCase
         $admin = $this->makeUser('admin');
         $ticket = $this->ticketOwnedBy($this->makeUser('user'));
 
-        Sanctum::actingAs($admin, ['*'], 'api');
+        Sanctum::actingAs($admin, ['*']);
 
-        $this->deleteJson("/api/tickets/{$ticket->id}")->assertNoContent();
+        $this->deleteJson("/api/tickets/{$ticket->id}")->assertOk();
         $this->assertDatabaseMissing('tickets', ['id' => $ticket->id]);
     }
 
@@ -191,7 +191,7 @@ class TicketApiTest extends TestCase
         $owner = $this->makeUser('user');
         $ticket = $this->ticketOwnedBy($owner);
 
-        Sanctum::actingAs($owner, ['*'], 'api');
+        Sanctum::actingAs($owner, ['*']);
 
         $this->deleteJson("/api/tickets/{$ticket->id}")->assertForbidden();
     }
@@ -204,7 +204,7 @@ class TicketApiTest extends TestCase
         $resolved->status = 'resolved';
         $resolved->save();
 
-        Sanctum::actingAs($admin, ['*'], 'api');
+        Sanctum::actingAs($admin, ['*']);
 
         $response = $this->postJson('/api/tickets/search', [
             'filters' => [
