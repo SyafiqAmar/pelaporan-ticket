@@ -30,8 +30,8 @@ class TicketPolicy
 
     public function update(AuthUser $authUser, Ticket $ticket): bool
     {
-        return $authUser->can('Update:Ticket') 
-            && $ticket->user_id === $authUser->id || $ticket->assigned_to===$authUser->id;
+        return $authUser->can('Update:Ticket')
+            && ($ticket->user_id === $authUser->id || $ticket->assigned_to === $authUser->id);
     }
 
     public function delete(AuthUser $authUser, Ticket $ticket): bool

@@ -10,7 +10,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Orion::resource('faqs', FaqController::class)->withoutMiddleware(['auth:sanctum']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Orion::resource('tickets', TicketController::class);
