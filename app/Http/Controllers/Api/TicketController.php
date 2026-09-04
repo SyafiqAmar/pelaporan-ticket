@@ -18,12 +18,12 @@ class TicketController extends Controller
 
     public function searchableBy(): array
     {
-        return ['subject', 'category'];
+        return ['subject', 'category', 'creator.name'];
     }
 
     public function filterableBy(): array
     {
-        return ['subject', 'category', 'priority', 'status', 'created_at'];
+        return ['subject', 'category', 'priority', 'status', 'created_at', 'creator.name'];
     }
 
     protected function buildFetchQuery(Request $request, array $requestedRelations): Builder
